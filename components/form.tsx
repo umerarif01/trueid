@@ -88,6 +88,7 @@ const Form = () => {
     abi: degreeAbi.abi,
     functionName: "checkDegreeOfPerson",
     args: [address],
+    watch: true,
   });
 
   return (

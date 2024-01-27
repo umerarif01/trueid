@@ -117,7 +117,7 @@ export default function NotClaimedDegreesComponent() {
           </TableHeader>
           <TableBody>
             {notClaimedDegrees.map((degree, index) => (
-              <TableRow>
+              <TableRow key={index}>
                 <TableCell className="font-medium">{index + 1}</TableCell>
                 <TableCell>{degree.userAddress}</TableCell>
                 <TableCell>

@@ -18,28 +18,19 @@ import { contractAddress } from "../lib/constants";
 import degreeAbi from "../lib/abi.json";
 import toast from "react-hot-toast";
 
-const useFetchTokenId = (userAddress: string) => {
-  const { data: tokenId } = useContractRead({
-    address: contractAddress,
-    abi: degreeAbi.abi,
-    functionName: "getTokenIdFromAddress",
-    args: [userAddress],
-  });
-  console.log(tokenId);
-  return tokenId;
-};
-
 export default function NotClaimedDegreesComponent() {
   const [notClaimedDegrees, setNotClaimedDegrees] = useState<
     Array<{ userAddress: string; tokenURI: string }>
   >([]);
   const [isLoading, setIsLoading] = useState(true);
   const [issuing, setIssuing] = useState(false);
+  const [address, setAddress] = useState("");
 
   const { data: degrees } = useContractRead({
     address: contractAddress,
     abi: degreeAbi.abi,
     functionName: "getAllClaimedDegrees",
+    watch: true,
   });
 
   // Function to retrieve and store not claimed degrees in state
@@ -77,17 +68,26 @@ export default function NotClaimedDegreesComponent() {
     functionName: "burnDegree",
   });
 
+  const { data: tokenId, refetch: getTokenId } = useContractRead({
+    address: contractAddress,
+    abi: degreeAbi.abi,
+    functionName: "getTokenIdFromAddress",
+    args: [address],
+  });
+
   const burnDegree = async (userAddress: string) => {
     try {
+      setAddress(userAddress);
+      getTokenId();
       toast("Burning Degree!", {
         icon: "🔥",
       });
       setIssuing(isIssuing);
-      const tokenId = useFetchTokenId(userAddress);
       console.log(tokenId);
       await burn({
         args: [tokenId],
       });
+      toast.success("Degree Burned!");
       setIssuing(isSuccess);
     } catch (error) {
       console.error("Error burning degree:", burnError);
@@ -126,7 +126,7 @@ export default function NotClaimedDegreesComponent() {
           </TableHeader>
           <TableBody>
             {notClaimedDegrees.map((degree, index) => (
-              <TableRow>
+              <TableRow key={index}>
                 <TableCell className="font-medium">{index + 1}</TableCell>
                 <TableCell>{degree.userAddress}</TableCell>
                 <TableCell>
