@@ -17,17 +17,19 @@ const useOwnershipCheck = (address: any) => {
   const [isOwner, setIsOwner] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const { data: ownerAddress } = useContractRead({
+  const { data: owner } = useContractRead({
     address: contractAddress,
     abi: degreeAbi.abi,
-    functionName: "owner",
+    functionName: "isOwner",
+    args: [address],
   });
 
   useEffect(() => {
     const checkOwnership = async () => {
       try {
+        console.log(owner);
         setLoading(false);
-        setIsOwner(ownerAddress === address);
+        setIsOwner(owner as boolean);
       } catch (error) {
         console.error("Error checking ownership:", error);
         setLoading(false);
@@ -35,7 +37,7 @@ const useOwnershipCheck = (address: any) => {
     };
 
     checkOwnership();
-  }, [address]);
+  }, [address, owner]);
 
   return { isOwner, loading };
 };

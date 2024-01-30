@@ -35,6 +35,14 @@ export function MainNav({ items }: MainNavProps) {
                 </Link>
               )
           )}
+          <Link
+            href={`/recent`}
+            className={cn(
+              "flex items-center text-sm font-medium text-muted-foreground"
+            )}
+          >
+            Recently Issued Degrees
+          </Link>
           {pathname === "/admin" ? (
             <Link
               href={`/admin/claimed-degrees`}
@@ -42,7 +50,7 @@ export function MainNav({ items }: MainNavProps) {
                 "flex items-center text-sm font-medium text-muted-foreground"
               )}
             >
-              Claimed Degrees
+              Issued Degrees (Admin)
             </Link>
           ) : pathname === "/admin/claimed-degrees" ? (
             <Link
@@ -51,7 +59,7 @@ export function MainNav({ items }: MainNavProps) {
                 "flex items-center text-sm font-medium text-muted-foreground"
               )}
             >
-              Not Claimed Degrees
+              Requested Degrees (Admin)
             </Link>
           ) : null}
         </nav>

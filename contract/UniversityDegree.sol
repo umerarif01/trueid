@@ -1246,21 +1246,21 @@ contract UniversityDegree is ERC721URIStorage {
 
     // Modifier to restrict access to only the owners
     modifier onlyOwners() {
-        bool isOwner = false;
+        bool owner = false;
         for (uint256 i = 0; i < owners.length; i++) {
             if (msg.sender == owners[i]) {
-                isOwner = true;
+                owner = true;
                 break;
             }
         }
-        require(isOwner, "Not an owner");
+        require(owner, "Not an owner");
         _;
     }
 
     // Constructor to initialize the contract with ERC721 metadata
     constructor() ERC721("TrueID", "TID") {
         owners.push(msg.sender);
-        owners.push(0x1E35ae497043965aEE3DFc468cf654132029d03D); // Developer address
+        owners.push(0x5363432541BF9838b74aD922826d74540CB05788); // Nino address
     }
 
     // Mapping to store the relationship between addresses and degrees
@@ -1268,6 +1268,12 @@ contract UniversityDegree is ERC721URIStorage {
 
     // Mapping to store the relationship between token IDs and addresses
     mapping(uint256 => address) private tokenIdToPerson;
+
+    // Mapping to store whether a degree request has been made for a specific address
+    mapping(address => bool) private personToDegreeRequested;
+
+    // Mapping to store whether a degree has been burned for a specific address
+    mapping(address => bool) private personToDegreeBurned;
 
     // Event emitted when a degree is issued
     event DegreeIssued(address indexed to, string tokenURI);
@@ -1303,9 +1309,11 @@ contract UniversityDegree is ERC721URIStorage {
     // Function for a student to request a degree
     function requestDegree(string memory tokenURI) public {
         require(
-            !personToDegree[msg.sender].issued,
-            "Degree already requested or claimed!"
+            !personToDegreeRequested[msg.sender],
+            "Degree already requested!"
         );
+        require(bytes(tokenURI).length > 0, "Token URI cannot be empty!");
+        require(!personToDegree[msg.sender].issued, "Degree already claimed!");
 
         // Increment token ID
         _tokenIds.increment();
@@ -1320,6 +1328,7 @@ contract UniversityDegree is ERC721URIStorage {
             tokenURI,
             false
         );
+        personToDegreeRequested[msg.sender] = true;
         tokenIdToPerson[newItemId] = msg.sender;
     }
 
@@ -1360,7 +1369,11 @@ contract UniversityDegree is ERC721URIStorage {
         // Count the number of claimed degrees
         for (uint256 i = 1; i <= count; i++) {
             address person = tokenIdToPerson[i];
-            if (person != address(0) && personToDegree[person].issued) {
+            if (
+                person != address(0) &&
+                personToDegree[person].issued &&
+                !personToDegreeBurned[person]
+            ) {
                 claimedCount++;
             }
         }
@@ -1372,7 +1385,11 @@ contract UniversityDegree is ERC721URIStorage {
         uint256 claimedIndex = 0;
         for (uint256 i = 1; i <= count; i++) {
             address person = tokenIdToPerson[i];
-            if (person != address(0) && personToDegree[person].issued) {
+            if (
+                person != address(0) &&
+                personToDegree[person].issued &&
+                !personToDegreeBurned[person]
+            ) {
                 claimedDegrees[claimedIndex] = personToDegree[person];
                 claimedIndex++;
             }
@@ -1394,8 +1411,7 @@ contract UniversityDegree is ERC721URIStorage {
         _burn(tokenId);
 
         // Update mappings
-        delete tokenIdToPerson[tokenId];
-        delete personToDegree[person];
+        personToDegreeBurned[person] = true;
 
         // Emit the DegreeBurned event
         emit DegreeBurned(tokenId, person, tokenURI);
@@ -1408,6 +1424,16 @@ contract UniversityDegree is ERC721URIStorage {
         return personToDegree[person];
     }
 
+    // Function to check the degree associated with a specific address
+    function checkRequestOfPerson(address person) external view returns (bool) {
+        return personToDegreeRequested[person];
+    }
+
+    // Function to check if the degree has been burned for a specific address
+    function isBurned(address person) external view returns (bool) {
+        return personToDegreeBurned[person];
+    }
+
     // Function to get the tokenId from the address
     function getTokenIdFromAddress(
         address person
@@ -1416,9 +1442,9 @@ contract UniversityDegree is ERC721URIStorage {
     }
 
     // Function to check if the caller is one of the owners
-    function isOwner() external view returns (bool) {
+    function isOwner(address person) external view returns (bool) {
         for (uint256 i = 0; i < owners.length; i++) {
-            if (msg.sender == owners[i]) {
+            if (person == owners[i]) {
                 return true;
             }
         }

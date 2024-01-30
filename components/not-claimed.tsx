@@ -25,78 +25,69 @@ export default function NotClaimedDegreesComponent() {
   const [isLoading, setIsLoading] = useState(true);
   const [issuing, setIssuing] = useState(false);
 
-  const { data: degrees } = useContractRead({
+  const {
+    data: degrees,
+    refetch: refetchDegrees,
+    isSuccess,
+  } = useContractRead({
     address: contractAddress,
     abi: degreeAbi.abi,
     functionName: "getNotClaimedDegrees",
-  });
-
-  // Function to retrieve and store not claimed degrees in state
-  async function fetchNotClaimedDegrees() {
-    try {
+    onSuccess() {
       // Check if degrees is defined and not an empty array
       if (!degrees || !Array.isArray(degrees)) {
         return [];
       }
-
-      // Map the results to a format with userAddress and tokenURI
       const degreesData = degrees.map((degree: any) => ({
         userAddress: degree.person,
         tokenURI: degree.tokenURI,
       }));
-
-      return degreesData;
-    } catch (error) {
-      console.error("Error retrieving not claimed degrees:", error);
-      return [];
-    } finally {
+      setNotClaimedDegrees(degreesData);
       setIsLoading(false);
-    }
-  }
+    },
+    onError(error) {
+      toast.error("An error occured! Please try again!");
+      console.log(error);
+      setIsLoading(false);
+    },
+    watch: true,
+  });
 
-  const {
-    write: issue,
-    error: issueError,
-    isLoading: isIssuing,
-    isSuccess,
-    isError,
-  } = useContractWrite({
+  const { write: issue, error: issueError } = useContractWrite({
     address: contractAddress,
     abi: degreeAbi.abi,
     functionName: "issueDegree",
+    onSuccess() {
+      toast.success("Degree Issued Successfully!");
+      refetchDegrees();
+    },
   });
+
+  useEffect(() => {
+    refetchDegrees();
+  }, [isSuccess]);
 
   const issueDegree = async (userAddress: string, tokenURI: string) => {
     try {
       toast("Issuing Degree!", {
         icon: "🔃",
       });
-      setIssuing(isIssuing);
+      setIssuing(true);
 
       await issue({
         args: [userAddress, tokenURI],
       });
-      setIssuing(isSuccess);
-      window.location.reload();
+      setIssuing(false);
     } catch (error) {
       console.error("Error issuing degree:", issueError);
       toast.error("Error! Please try again later");
-      setIssuing(isError);
+      setIssuing(false);
     }
   };
 
-  useEffect(() => {
-    const fetchData = async () => {
-      const degreesData = await fetchNotClaimedDegrees();
-      setNotClaimedDegrees(degreesData);
-    };
-
-    fetchData();
-  }, [isSuccess]);
-
   return (
     <div>
-      <h2 className="font-semibold text-2xl my-3">Not Claimed Degrees</h2>
+      <h2 className="font-semibold text-2xl my-3">Requested Degrees</h2>
 
       {isLoading ? (
         <div className="flex flex-col justify-center items-center space-y-3">
@@ -106,7 +97,7 @@ export default function NotClaimedDegreesComponent() {
       ) : (
         <Table>
           <TableCaption>
-            A list of users who have not claimed degrees
+            A list of users who have requested degrees
           </TableCaption>
           <TableHeader>
             <TableRow>

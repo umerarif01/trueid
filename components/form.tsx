@@ -35,16 +35,18 @@ const Form = () => {
     }));
   };
 
-  const {
-    write: requestDegree,
-    error: requestError,
-    isLoading,
-    isSuccess,
-    isError,
-  } = useContractWrite({
+  const { write: requestDegree, error: requestError } = useContractWrite({
     address: contractAddress,
     abi: degreeAbi.abi,
     functionName: "requestDegree",
+    onSuccess() {
+      toast.success("Request Submitted Successfully!");
+      setIsSubmitting(false);
+    },
+    onError() {
+      toast.error("An error occured! Please try again!");
+      setIsSubmitting(false);
+    },
   });
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -61,32 +63,29 @@ const Form = () => {
     }
 
     try {
-      setIsSubmitting(isLoading);
+      setIsSubmitting(true);
       const ipfsHash = await pinJSONToIPFS(formState);
       await requestDegree({
         args: [ipfsHash],
       });
-      setIsSubmitting(isSuccess);
     } catch (error) {
       console.log(requestError);
-      setIsSubmitting(isError);
+      setIsSubmitting(false);
     }
-
-    // Reset the form after submission
-    setFormState({
-      university: "",
-      academicDegree: "",
-      year: "",
-      fieldOfStudy: "",
-      studentName: "",
-      thesisTitle: "",
-    });
   };
 
   const { data: degree } = useContractRead({
     address: contractAddress,
     abi: degreeAbi.abi,
     functionName: "checkDegreeOfPerson",
+    args: [address],
+    watch: true,
+  });
+
+  const { data: requested } = useContractRead({
+    address: contractAddress,
+    abi: degreeAbi.abi,
+    functionName: "checkRequestOfPerson",
     args: [address],
     watch: true,
   });
@@ -100,11 +99,11 @@ const Form = () => {
         </div>
       ) : (
         <div className="flex flex-col space-y-2 p-8 rounded-xl border border-gray-300 shadow-sm w-full md:w-3/5 dark:border-gray-700 mt-[50px]">
-          {degree && (degree as any).issued === true ? (
+          {(degree && (degree as any).issued === true) || requested ? (
             <div>
               <p className="font-semibold text-lg text-center">
-                You have already received a degree associated with this wallet
-                address.
+                You have already requested or received a degree associated with
+                this wallet address.
               </p>
             </div>
           ) : (
@@ -177,7 +176,7 @@ const Form = () => {
                   className="w-full"
                   disabled={isSubmitting}
                 >
-                  Request Degree
+                  {isSubmitting ? `Requesting Degree` : `Request Degree`}
                 </Button>
               </form>
             </>
@@ -192,7 +191,7 @@ export default Form;
 
 const Label = ({ children }: any) => {
   return (
-    <label className="block text-sm font-medium text-gray-700">
+    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
       {children}
     </label>
   );

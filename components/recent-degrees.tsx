@@ -18,7 +18,7 @@ import { contractAddress } from "../lib/constants";
 import degreeAbi from "../lib/abi.json";
 import toast from "react-hot-toast";
 
-export default function NotClaimedDegreesComponent() {
+export default function RecentClaimedDegreesComponent() {
   const [notClaimedDegrees, setNotClaimedDegrees] = useState<
     Array<{ userAddress: string; tokenURI: string }>
   >([]);
@@ -54,55 +54,13 @@ export default function NotClaimedDegreesComponent() {
     },
   });
 
-  const {
-    write: burn,
-    error: burnError,
-    isLoading: isIssuing,
-    isError,
-  } = useContractWrite({
-    address: contractAddress,
-    abi: degreeAbi.abi,
-    functionName: "burnDegree",
-    onSuccess() {
-      toast.success("Degree Burned!");
-      refetchDegrees();
-    },
-  });
-
-  const { data: tokenId, refetch: getTokenId } = useContractRead({
-    address: contractAddress,
-    abi: degreeAbi.abi,
-    functionName: "getTokenIdFromAddress",
-    args: [address],
-  });
-
-  const burnDegree = async (userAddress: string) => {
-    try {
-      setAddress(userAddress);
-      getTokenId();
-      toast("Burning Degree!", {
-        icon: "🔥",
-      });
-      setIssuing(isIssuing);
-      console.log(tokenId);
-      await burn({
-        args: [tokenId],
-      });
-      setIssuing(isSuccess);
-    } catch (error) {
-      console.error("Error burning degree:", burnError);
-      toast.error("Error occured while burning degree!");
-      setIssuing(isError);
-    }
-  };
-
   useEffect(() => {
     refetchDegrees();
   }, [isSuccess]);
 
   return (
     <div>
-      <h2 className="font-semibold text-2xl my-3">Issued Degrees</h2>
+      <h2 className="font-semibold text-2xl my-3">Recently Issued Degrees</h2>
 
       {isLoading ? (
         <div className="flex flex-col justify-center items-center space-y-3">
@@ -129,9 +87,6 @@ export default function NotClaimedDegreesComponent() {
                 <TableCell>
                   <div className="flex space-x-2">
                     <ViewMetaData tokenURI={degree.tokenURI} />
-                    <Button onClick={() => burnDegree(degree.userAddress)}>
-                      Burn Degree
-                    </Button>
                   </div>
                 </TableCell>
               </TableRow>
