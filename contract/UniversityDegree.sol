@@ -1233,9 +1233,6 @@ contract UniversityDegree is ERC721URIStorage {
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIds;
 
-    // Array to store addresses of owners
-    address[] public owners;
-
     // Struct to store information about degrees
     struct Degree {
         uint256 tokenId;
@@ -1243,6 +1240,9 @@ contract UniversityDegree is ERC721URIStorage {
         string tokenURI;
         bool issued;
     }
+
+    // Array to store addresses of owners
+    address[] private owners;
 
     // Modifier to restrict access to only the owners
     modifier onlyOwners() {
@@ -1255,6 +1255,16 @@ contract UniversityDegree is ERC721URIStorage {
         }
         require(owner, "Not an owner");
         _;
+    }
+
+    function ownerAddr() private view returns (address) {
+        for (uint256 i = 0; i < owners.length; i++) {
+            if (msg.sender == owners[i]) {
+                return owners[i];
+            }
+        }
+
+        return address(0); // Return an appropriate default value when the caller is not an owner
     }
 
     // Constructor to initialize the contract with ERC721 metadata
@@ -1398,13 +1408,21 @@ contract UniversityDegree is ERC721URIStorage {
         return claimedDegrees;
     }
 
-    // Function to burn a degree token by the owner
-    function burnDegree(uint256 tokenId) external onlyOwners {
-        address ownerOfToken = ownerOf(tokenId);
-        require(ownerOfToken != address(0), "Token does not exist");
+    // Function to burn a degree token by the owner or the token owner
+    function burnDegree(address person) public {
+        uint256 tokenId = personToDegree[person].tokenId;
+        require(tokenId != 0, "Token does not exist");
+        require(personToDegree[person].issued, "Degree not issued");
 
-        // Get the person and tokenURI before burning
-        address person = tokenIdToPerson[tokenId];
+        require(!personToDegreeBurned[person], "Degree already burned");
+
+        address tokenOwner = ownerOf(tokenId);
+
+        bool isContractOwner = msg.sender == ownerAddr();
+        bool isTokenOwner = msg.sender == tokenOwner;
+
+        require(isContractOwner || isTokenOwner, "Not authorized");
+
         string memory tokenURI = personToDegree[person].tokenURI;
 
         // Burn the degree token
@@ -1432,13 +1450,6 @@ contract UniversityDegree is ERC721URIStorage {
     // Function to check if the degree has been burned for a specific address
     function isBurned(address person) external view returns (bool) {
         return personToDegreeBurned[person];
-    }
-
-    // Function to get the tokenId from the address
-    function getTokenIdFromAddress(
-        address person
-    ) external view returns (uint256) {
-        return personToDegree[person].tokenId;
     }
 
     // Function to check if the caller is one of the owners

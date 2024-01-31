@@ -14,6 +14,7 @@ export const pinJSONToIPFS = async (formData: FormState) => {
     image: "ipfs://QmZeW8PyQcUMNbuRUT5C79N7Q6sLtq5fBJJwbnYJxioeVF",
     description:
       "An award conferred by a college or university signifying that the recipient has satisfactorily completed a course of study",
+    sellable: false,
     traits: [],
   };
 

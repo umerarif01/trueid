@@ -69,24 +69,15 @@ export default function NotClaimedDegreesComponent() {
     },
   });
 
-  const { data: tokenId, refetch: getTokenId } = useContractRead({
-    address: contractAddress,
-    abi: degreeAbi.abi,
-    functionName: "getTokenIdFromAddress",
-    args: [address],
-  });
-
   const burnDegree = async (userAddress: string) => {
     try {
       setAddress(userAddress);
-      getTokenId();
       toast("Burning Degree!", {
         icon: "🔥",
       });
       setIssuing(isIssuing);
-      console.log(tokenId);
       await burn({
-        args: [tokenId],
+        args: [userAddress],
       });
       setIssuing(isSuccess);
     } catch (error) {
