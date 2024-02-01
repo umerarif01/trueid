@@ -96,7 +96,7 @@ export default ViewMetaData;
 
 // Define a reusable Card component
 const Card = ({ title, content }: any) => (
-  <div className="flex flex-col text-center items-center p-4 border border-gray-300 rounded-md">
+  <div className="flex flex-col text-center items-center p-4 border border-gray-300 rounded-md dark:border-gray-600">
     <h1 className="text-sm">{title}</h1>
     <p className="font-semibold ">{content}</p>
   </div>

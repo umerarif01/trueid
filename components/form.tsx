@@ -91,14 +91,6 @@ const Form = () => {
     watch: true,
   });
 
-  const { data: isBurned } = useContractRead({
-    address: contractAddress,
-    abi: degreeAbi.abi,
-    functionName: "isBurned",
-    args: [address],
-    watch: true,
-  });
-
   return (
     <>
       {!address ? (
@@ -108,11 +100,9 @@ const Form = () => {
         </div>
       ) : (
         <div className="flex flex-col space-y-2 p-8 rounded-xl border border-gray-300 shadow-sm w-full md:w-3/5 dark:border-gray-700 mt-[50px]">
-          {(degree && (degree as any).issued === true) ||
-          requested ||
-          isBurned ? (
+          {(degree && (degree as any).issued === true) || requested ? (
             <>
-              {degree && (degree as any).issued === true && !isBurned && (
+              {degree && (degree as any).issued === true && (
                 <div className="flex flex-col items-center space-y-3">
                   <p className="font-semibold text-lg text-center">
                     You have already received a degree associated with this
@@ -126,16 +116,6 @@ const Form = () => {
                 <div>
                   <p className="font-semibold text-lg text-center">
                     You have already requested a degree associated with this
-                    wallet address.
-                  </p>
-                </div>
-              )}
-
-              {isBurned && degree && (degree as any).issued === true && (
-                <div>
-                  <p className="font-semibold text-lg text-center">
-                    The degree associated with this wallet address has already
-                    been burned. You cannot request another degree with this
                     wallet address.
                   </p>
                 </div>

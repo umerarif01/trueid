@@ -1273,6 +1273,32 @@ contract UniversityDegree is ERC721URIStorage {
         owners.push(0x5363432541BF9838b74aD922826d74540CB05788); // Nino address
     }
 
+    function _beforeTokenTransfer(
+        address from,
+        address to,
+        uint256 tokenId
+    ) internal virtual override(ERC721) {
+        require(
+            from == address(0) || to == address(0),
+            "NonTransferrableToken: TRUEID is non transferrable"
+        );
+        super._beforeTokenTransfer(from, to, tokenId);
+    }
+
+    function setApprovalForAll(
+        address /* operator */,
+        bool /* approved */
+    ) public virtual override {
+        revert("ERC721: setApprovalForAll is disabled");
+    }
+
+    function approve(
+        address /* to */,
+        uint256 /* tokenId */
+    ) public virtual override {
+        revert("ERC721: approve is disabled");
+    }
+
     // Mapping to store the relationship between addresses and degrees
     mapping(address => Degree) public personToDegree;
 
@@ -1282,11 +1308,11 @@ contract UniversityDegree is ERC721URIStorage {
     // Mapping to store whether a degree request has been made for a specific address
     mapping(address => bool) private personToDegreeRequested;
 
-    // Mapping to store whether a degree has been burned for a specific address
-    mapping(address => bool) private personToDegreeBurned;
-
     // Event emitted when a degree is issued
     event DegreeIssued(address indexed to, string tokenURI);
+
+    // Event emitted when a degree request is rejected
+    event DegreeRequestRejected(address indexed person);
 
     // Event emitted when a degree is burned
     event DegreeBurned(
@@ -1299,18 +1325,15 @@ contract UniversityDegree is ERC721URIStorage {
     function issueDegree(address to, string memory tokenURI) public onlyOwners {
         require(!personToDegree[to].issued, "Degree already issued");
 
-        // Increment token ID
-        _tokenIds.increment();
-
-        // Get the current token ID
-        uint256 newItemId = _tokenIds.current();
+        // Get the token ID from personToDegree mapping
+        uint256 tokenId = personToDegree[to].tokenId;
 
         // Mint a new token and set its URI
-        _mint(to, newItemId);
-        _setTokenURI(newItemId, tokenURI);
+        _mint(to, tokenId);
+        _setTokenURI(tokenId, tokenURI);
 
         // Update mappings
-        personToDegree[to] = Degree(newItemId, to, tokenURI, true);
+        personToDegree[to] = Degree(tokenId, to, tokenURI, true);
 
         // Emit the DegreeIssued event
         emit DegreeIssued(to, tokenURI);
@@ -1379,11 +1402,7 @@ contract UniversityDegree is ERC721URIStorage {
         // Count the number of claimed degrees
         for (uint256 i = 1; i <= count; i++) {
             address person = tokenIdToPerson[i];
-            if (
-                person != address(0) &&
-                personToDegree[person].issued &&
-                !personToDegreeBurned[person]
-            ) {
+            if (person != address(0) && personToDegree[person].issued) {
                 claimedCount++;
             }
         }
@@ -1395,11 +1414,7 @@ contract UniversityDegree is ERC721URIStorage {
         uint256 claimedIndex = 0;
         for (uint256 i = 1; i <= count; i++) {
             address person = tokenIdToPerson[i];
-            if (
-                person != address(0) &&
-                personToDegree[person].issued &&
-                !personToDegreeBurned[person]
-            ) {
+            if (person != address(0) && personToDegree[person].issued) {
                 claimedDegrees[claimedIndex] = personToDegree[person];
                 claimedIndex++;
             }
@@ -1408,13 +1423,27 @@ contract UniversityDegree is ERC721URIStorage {
         return claimedDegrees;
     }
 
+    // Function to reject a degree request by the owner or an admin
+    function rejectRequest(address person) external onlyOwners {
+        require(personToDegreeRequested[person], "Degree request not found");
+
+        uint256 tokenId = personToDegree[person].tokenId;
+
+        // Update mappings
+        delete personToDegreeRequested[person];
+        delete personToDegree[person];
+        delete tokenIdToPerson[tokenId];
+
+        // Emit an event for the rejected request
+        emit DegreeRequestRejected(person);
+    }
+
     // Function to burn a degree token by the owner or the token owner
     function burnDegree(address person) public {
-        uint256 tokenId = personToDegree[person].tokenId;
-        require(tokenId != 0, "Token does not exist");
         require(personToDegree[person].issued, "Degree not issued");
 
-        require(!personToDegreeBurned[person], "Degree already burned");
+        uint256 tokenId = personToDegree[person].tokenId;
+        require(tokenId != 0, "Token does not exist");
 
         address tokenOwner = ownerOf(tokenId);
 
@@ -1429,7 +1458,9 @@ contract UniversityDegree is ERC721URIStorage {
         _burn(tokenId);
 
         // Update mappings
-        personToDegreeBurned[person] = true;
+        delete personToDegreeRequested[person];
+        delete personToDegree[person];
+        delete tokenIdToPerson[tokenId];
 
         // Emit the DegreeBurned event
         emit DegreeBurned(tokenId, person, tokenURI);
@@ -1445,11 +1476,6 @@ contract UniversityDegree is ERC721URIStorage {
     // Function to check the degree associated with a specific address
     function checkRequestOfPerson(address person) external view returns (bool) {
         return personToDegreeRequested[person];
-    }
-
-    // Function to check if the degree has been burned for a specific address
-    function isBurned(address person) external view returns (bool) {
-        return personToDegreeBurned[person];
     }
 
     // Function to check if the caller is one of the owners

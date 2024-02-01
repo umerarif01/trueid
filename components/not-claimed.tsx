@@ -85,6 +85,38 @@ export default function NotClaimedDegreesComponent() {
     }
   };
 
+  const { write: reject, error: rejectError } = useContractWrite({
+    address: contractAddress,
+    abi: degreeAbi.abi,
+    functionName: "rejectRequest",
+    onSuccess() {
+      toast.success("Degree Rejected Successfully!");
+      refetchDegrees();
+    },
+  });
+
+  useEffect(() => {
+    refetchDegrees();
+  }, [isSuccess]);
+
+  const rejectDegree = async (userAddress: string) => {
+    try {
+      toast("Rejecting Degree!", {
+        icon: "🔃",
+      });
+      setIssuing(true);
+
+      await reject({
+        args: [userAddress],
+      });
+      setIssuing(false);
+    } catch (error) {
+      console.error("Error issuing degree:", rejectError);
+      toast.error("Error! Please try again later");
+      setIssuing(false);
+    }
+  };
+
   return (
     <div>
       <h2 className="font-semibold text-2xl my-3">Requested Degrees</h2>
@@ -120,6 +152,9 @@ export default function NotClaimedDegreesComponent() {
                       }
                     >
                       Issue Degree
+                    </Button>
+                    <Button onClick={() => rejectDegree(degree.userAddress)}>
+                      Reject Degree
                     </Button>
                   </div>
                 </TableCell>
